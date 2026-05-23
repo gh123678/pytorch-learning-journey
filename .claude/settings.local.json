@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Get-WindowsUpdate\")",
+      "Bash(powershell -Command \"Install-Module -Name PSWindowsUpdate -Force -Scope CurrentUser -AllowClobber\")",
+      "Bash(powershell -Command \"Start-Process 'ms-settings:windowsupdate'\")",
+      "Bash(powershell -Command ' *)",
+      "Bash(powershell -Command \"DISM /Online /Cleanup-Image /RestoreHealth\")",
+      "Bash(powershell -Command \"SFC /SCANNOW\")",
+      "Bash(powershell -Command \"Get-Content C:\\\\\\\\Windows\\\\\\\\Logs\\\\\\\\CBS\\\\\\\\CBS.log | Select-String 'SFC|corrupt|repair|successful' | Select-Object -Last 5\")",
+      "Bash(powershell -Command \"UsoClient StartScan\")",
+      "Bash(powershell -Command \"Get-WindowsUpdateLog -LogPath C:\\\\\\\\Windows\\\\\\\\WindowsUpdate.log\")",
+      "Bash(powershell -Command \"reg query 'HKLM\\\\\\\\SOFTWARE\\\\\\\\Policies\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\WindowsUpdate' 2>&1; reg query 'HKLM\\\\\\\\SOFTWARE\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\CurrentVersion\\\\\\\\WindowsUpdate' /v WUServer 2>&1\")",
+      "Bash(powershell -Command \"reg query 'HKLM\\\\\\\\SOFTWARE\\\\\\\\Policies\\\\\\\\Microsoft\\\\\\\\Windows\\\\\\\\WindowsUpdate\\\\\\\\AU'\")",
+      "Bash(powershell -Command \"Select-String -Path 'C:\\\\\\\\Windows\\\\\\\\WindowsUpdate.log' -Pattern 'error|fail|warn|0x8024|0x8007|IsPaused|paus' -SimpleMatch -AllMatches | Select-Object -Last 20\")",
+      "Bash(powershell -Command \"\\(Get-WmiObject -Class Win32_OperatingSystem\\).Version; \\(Get-WmiObject -Class Win32_OperatingSystem\\).OSArchitecture\")",
+      "Bash(powershell -Command \"Get-Content 'C:\\\\\\\\Windows\\\\\\\\WindowsUpdate.log' -Tail 100 | Out-String\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"d:\\\\MYCODE\\\\check_update.ps1\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"d:\\\\MYCODE\\\\install_updates.ps1\")",
+      "Bash(powershell -Command \"Get-Service wuauserv, bits, cryptsvc, trustedinstaller | Format-Table Name, Status, StartType\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"d:\\\\MYCODE\\\\download_one.ps1\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"d:\\\\MYCODE\\\\check_policy.ps1\")",
+      "Bash(where conda *)",
+      "Bash(where python *)",
+      "Bash(conda --version)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"d:\\\\MYCODE\\\\install_anaconda.ps1\")",
+      "Bash(powershell -Command \"winget install --id Anaconda.Anaconda3 --silent --accept-package-agreements --accept-source-agreements\")",
+      "Bash(powershell -Command \"Test-Path C:\\\\\\\\anaconda3; Test-Path C:\\\\\\\\Users\\\\\\\\Admin\\\\\\\\anaconda3; Test-Path D:\\\\\\\\anaconda3; ls C:\\\\\\\\ProgramData\\\\\\\\anaconda3 -ErrorAction SilentlyContinue\")",
+      "Bash(powershell -Command \"Get-Content 'C:\\\\Users\\\\Admin\\\\.claude\\\\projects\\\\d--MYCODE\\\\0b62f8f7-3a7a-4480-9c69-387ea7a1a352\\\\tool-results\\\\ba6w3xqir.txt' -Tail 20\")",
+      "Bash(powershell -Command \"conda --version 2>&1; conda info --envs 2>&1\")",
+      "Bash(powershell -Command \"& 'C:\\\\\\\\Users\\\\\\\\Admin\\\\\\\\anaconda3\\\\\\\\Scripts\\\\\\\\conda.exe' init powershell\")",
+      "Bash(powershell -Command \"& 'C:\\\\\\\\Users\\\\\\\\Admin\\\\\\\\anaconda3\\\\\\\\Scripts\\\\\\\\conda.exe' --version; & 'C:\\\\\\\\Users\\\\\\\\Admin\\\\\\\\anaconda3\\\\\\\\python.exe' --version\")",
+      "Bash(\"C:\\\\\\\\Users\\\\\\\\Admin\\\\\\\\anaconda3\\\\\\\\Scripts\\\\\\\\conda.exe\" install *)"
+    ]
+  }
+}

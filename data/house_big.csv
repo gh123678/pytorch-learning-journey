@@ -1,0 +1,9 @@
+NumRooms, Alley, YearBuilt, GarageType, PoolArea, Price
+NA, Pave, 2001, Attached, 50, 250000
+NA, NA, 1995, NA, NA, 180000
+4, Grvl, NA, Detached, 30, 320000
+2, Pave, 1980, NA, NA, 150000
+NA, Grvl, 2010, Attached, 0, 400000
+5, NA, NA, NA, 80, 500000
+NA, Pave, 2005, Detached, NA, 280000
+3, NA, 2020, Attached, 45, 380000

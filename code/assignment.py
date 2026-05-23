@@ -1,0 +1,32 @@
+import torch
+import os
+import pandas as pd
+script_dir = os.path.dirname(os.path.abspath(__file__))
+os.makedirs(os.path.join(script_dir, '..', 'data'), exist_ok=True)
+data_file = os.path.join(script_dir, '..', 'data', 'house_big.csv')
+with open(data_file,'w')as a:
+    a.write('NumRooms, Alley, YearBuilt, GarageType, PoolArea, Price'+'\n')
+    a.write('NA, Pave, 2001, Attached, 50, 250000'+'\n')
+    a.write('NA, NA, 1995, NA, NA, 180000'+'\n')
+    a.write('4, Grvl, NA, Detached, 30, 320000'+'\n')
+    a.write('2, Pave, 1980, NA, NA, 150000'+'\n')
+    a.write('NA, Grvl, 2010, Attached, 0, 400000'+'\n')
+    a.write('5, NA, NA, NA, 80, 500000'+'\n')
+    a.write('NA, Pave, 2005, Detached, NA, 280000'+'\n')
+    a.write('3, NA, 2020, Attached, 45, 380000'+'\n')
+data = pd.read_csv(data_file,skipinitialspace=True)
+print(data)
+print(data.isnull().sum())
+max_na_col = data.isnull().sum().idxmax()
+print(f"Column with maximum null values: {max_na_col}")
+data = data.drop(columns=[max_na_col])
+print(data)
+inputs,outputs = data.iloc[:, :-1], data.iloc[:, -1]
+inputs= inputs.fillna(inputs.mean(numeric_only=True))
+inputs = pd.get_dummies(inputs, dummy_na=True, dtype=int)
+print(inputs)
+X = torch.tensor(inputs.to_numpy(dtype=float))
+Y = torch.tensor(outputs.to_numpy(dtype=float))
+torch.set_printoptions(sci_mode=False)
+print(X)
+print(Y)
