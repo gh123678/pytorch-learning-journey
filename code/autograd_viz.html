@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>Autograd 可视化导图</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Microsoft YaHei', sans-serif; background:#1a1a2e; color:#eee; padding:20px; }
+  h1 { text-align:center; margin-bottom:30px; color:#e94560; }
+  .section {
+    background:#16213e; border-radius:12px; padding:24px; margin-bottom:24px;
+    border-left:4px solid #e94560;
+  }
+  .section h2 { color:#f5c518; margin-bottom:16px; }
+  .row { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+  .box {
+    border-radius:10px; padding:16px 20px; text-align:center; min-width:120px;
+    font-weight:bold; position:relative;
+  }
+  .input  { background:#0f3460; border:2px solid #4a9eff; color:#4a9eff; }
+  .op     { background:#533483; border:2px solid #a855f7; color:#d4bfff; }
+  .output { background:#1a4a1a; border:2px solid #22c55e; color:#86efac; }
+  .grad   { background:#7c2d12; border:2px solid #f97316; color:#fdba74; }
+  .arrow-box { display:flex; align-items:center; color:#94a3b8; font-size:24px; }
+
+  .flow {
+    display:flex; align-items:center; gap:12px;
+    justify-content:center; flex-wrap:wrap; margin:16px 0;
+  }
+
+  .compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .card {
+    border-radius:10px; padding:16px; border:1px solid #334155;
+  }
+  .card.good { background:#0d2818; border-color:#22c55e; }
+  .card.bad  { background:#2d0f0f; border-color:#ef4444; }
+  .card h3 { margin-bottom:8px; }
+  .card.good h3 { color:#22c55e; }
+  .card.bad h3 { color:#ef4444; }
+
+  table { width:100%; border-collapse:collapse; margin:12px 0; }
+  th { background:#334155; padding:8px 12px; text-align:left; }
+  td { padding:8px 12px; border-bottom:1px solid #334155; }
+
+  .step-arrow {
+    display:flex; align-items:center; gap:4px; margin:8px 0;
+    padding:8px 12px; background:#1e293b; border-radius:6px;
+    font-family: monospace; font-size:14px;
+  }
+  .step-arrow .arrow { color:#f5c518; margin:0 8px; }
+
+  .code-inline {
+    background:#0f172a; color:#38bdf8; padding:2px 8px; border-radius:4px;
+    font-family:monospace; font-size:13px;
+  }
+
+  .tree {
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    font-family:monospace; font-size:14px;
+  }
+  .tree-line { color:#94a3b8; }
+  .highlight { color:#f5c518; }
+</style>
+</head>
+<body>
+
+<h1>PyTorch Autograd 自动求导 — 可视化导图</h1>
+
+<!-- ====== 计算图基础 ====== -->
+<div class="section">
+  <h2>1. 计算图是什么？以 y = x³ 为例</h2>
+  <div class="flow">
+    <div class="box input">x = 2.0<br><small>requires_grad</small></div>
+    <div class="arrow-box">→</div>
+    <div class="box op">PowBackward0<br><small>x³</small></div>
+    <div class="arrow-box">→</div>
+    <div class="box output">y = 8.0<br><small>grad_fn</small></div>
+  </div>
+
+  <div class="step-arrow">
+    <span>正向传播</span>
+    <span class="arrow">→→→</span>
+    <span>x=2 → x³=8 → y=8，同时搭建计算链 PowBackward0</span>
+  </div>
+  <div class="step-arrow">
+    <span>反向传播</span>
+    <span class="arrow">←←←</span>
+    <span>y.backward() → y 的导数=1 → 经过 PowBackward0 → 3x²=12 → 存入 x.grad</span>
+  </div>
+
+  <p style="margin-top:12px; color:#94a3b8;">
+    <span class="code-inline">x.grad = 12</span> 就是 dy/dx = 3x²|_{x=2} = 12
+  </p>
+</div>
+
+<!-- ====== 一阶 vs 二阶 ====== -->
+<div class="section">
+  <h2>2. 一阶导 vs 二阶导 — 为什么二阶更贵？</h2>
+
+  <div class="compare">
+    <div class="card good">
+      <h3>一阶导 (1 pass)</h3>
+      <div class="tree">
+        <span>正向: x → x³ → y=8</span>
+        <span class="tree-line">│ 建图</span>
+        <span>反向: y.backward()</span>
+        <span class="tree-line">│ 沿图反向一次</span>
+        <span class="highlight">✓ x.grad = 12</span>
+        <span class="tree-line">│ 图已销毁 ✗</span>
+      </div>
+      <p style="margin-top:8px;color:#86efac;">开销: 正向1次 + 反向1次</p>
+    </div>
+
+    <div class="card bad">
+      <h3>二阶导 (2 passes)</h3>
+      <div class="tree">
+        <span>正向: x → x³ → y=8</span>
+        <span class="tree-line">│ 建图</span>
+        <span>第1次反向: grad(y,x,create_graph=True)</span>
+        <span class="tree-line">│ 得 df=12，且保留反向图</span>
+        <span>第2次反向: grad(df,x)</span>
+        <span class="tree-line">│ 对梯度再求导</span>
+        <span class="highlight">✓ d2f = 12</span>
+      </div>
+      <p style="margin-top:8px;color:#fca5a5;">开销: 正向1次 + 反向1次(建图) + 对梯度反向1次</p>
+    </div>
+  </div>
+
+  <p style="margin-top:12px;color:#94a3b8;">
+    每多一阶导，就要多做一整轮反向传播。求 n 阶导 = n 轮反向。
+  </p>
+</div>
+
+<!-- ====== backward() 行为 ====== -->
+<div class="section">
+  <h2>3. backward() 的三个关键行为</h2>
+
+  <table>
+    <tr>
+      <th>行为</th><th>原因</th><th>代码</th>
+    </tr>
+    <tr>
+      <td>🔒 用完即销毁</td>
+      <td>省内存，计算图不再需要</td>
+      <td><span class="code-inline">y.backward()</span> → 图没了</td>
+    </tr>
+    <tr>
+      <td>🔁 梯度累加</td>
+      <td>方便 RNN 等需要多次反向的场景</td>
+      <td>两次 backward → grad=12+12=24</td>
+    </tr>
+    <tr>
+      <td>📦 只接受标量</td>
+      <td>梯度形状必须和输入一致</td>
+      <td>向量 y → <span class="code-inline">y.sum().backward()</span></td>
+    </tr>
+  </table>
+
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;">
+    <div style="flex:1;min-width:250px;background:#1e293b;border-radius:8px;padding:16px;">
+      <h3 style="color:#ef4444;">❌ 连续两次 backward</h3>
+      <div class="step-arrow"><span>y.backward()</span><span class="arrow">→</span><span style="color:#86efac;">OK</span></div>
+      <div class="step-arrow"><span>y.backward()</span><span class="arrow">→</span><span style="color:#fca5a5;">RuntimeError! 图已释放</span></div>
+    </div>
+    <div style="flex:1;min-width:250px;background:#1e293b;border-radius:8px;padding:16px;">
+      <h3 style="color:#22c55e;">✅ 正确做法</h3>
+      <div class="step-arrow"><span>y.backward(retain_graph=True)</span></div>
+      <div class="step-arrow"><span>x.grad.zero_()</span><span class="arrow">→</span><span>清累加</span></div>
+      <div class="step-arrow"><span>y.backward(retain_graph=True)</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 控制流求导 ====== -->
+<div class="section">
+  <h2>4. 控制流求导 — 动态计算图</h2>
+
+  <div class="flow">
+    <div class="box input">a</div>
+    <div class="arrow-box">→</div>
+    <div class="box op">b = a×2</div>
+    <div class="arrow-box">→</div>
+    <div class="box op" style="border-style:dashed;">while b.norm()<1000<br>b = b×2</div>
+    <div class="arrow-box">→</div>
+    <div class="box op">if b.sum()>0<br>c=b<br>else<br>c=100b</div>
+    <div class="arrow-box">→</div>
+    <div class="box output">c</div>
+  </div>
+
+  <p style="margin-top:12px;">
+    PyTorch 不是先画好图再跑，而是<span class="highlight">边跑边记录</span>。
+    每个乘法都会被记为一个 MulBackward0 节点。
+    循环 10 次 = 10 个 MulBackward0 节点。
+    循环 11 次 = 11 个节点。
+  </p>
+
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;">
+    <div style="flex:1;min-width:200px;background:#1e293b;border-radius:8px;padding:16px;">
+      <h4 style="color:#4a9eff;">标量 a</h4>
+      <span class="code-inline">backward()</span> 直接调用<br>
+      结果: d/a = 2^(循环次数)
+    </div>
+    <div style="flex:1;min-width:200px;background:#1e293b;border-radius:8px;padding:16px;">
+      <h4 style="color:#a855f7;">向量/矩阵 a</h4>
+      <span class="code-inline">d.sum().backward()</span><br>
+      每个元素独立走一遍控制流<br>
+      梯度形状 = 输入形状
+    </div>
+  </div>
+</div>
+
+<!-- ====== 总结 ====== -->
+<div class="section">
+  <h2>5. 一句话总结</h2>
+  <table>
+    <tr><td>计算图</td><td>正向搭图，反向求导，用完就扔</td></tr>
+    <tr><td>retain_graph</td><td>不让扔，留着再求一次</td></tr>
+    <tr><td>create_graph</td><td>反向的时候再搭一层图，给高阶导用</td></tr>
+    <tr><td>梯度累加</td><td>每次 backward 往 x.grad 上<strong>加</strong>，不覆盖</td></tr>
+    <tr><td>标量限制</td><td>backward() 只接受标量，向量用 .sum() 归约</td></tr>
+    <tr><td>控制流</td><td>跑出来的路就是图，不区分 if/while</td></tr>
+  </table>
+</div>
+
+</body>
+</html>
