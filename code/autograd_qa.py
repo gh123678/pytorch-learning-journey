@@ -75,7 +75,7 @@ d.backward()
 print(f"标量 a: grad = {a_scalar.grad.item():.1f}, d/a = {(d/a_scalar).item():.1f}")
 
 # 向量版本
-a_vec = torch.randn(3, requires_grad=True)
+a_vec = torch.randn((3,), requires_grad=True)
 d = f_control(a_vec)
 print(f"\n向量 a = {a_vec}")
 print(f"向量结果 d = {d}")
@@ -103,11 +103,7 @@ print("=" * 50)
 
 def piecewise(x):
     """分段函数: x<0时 f=sin(x)*2, x>=0时 f=x^2"""
-    if (x < 0).any():
-        y = torch.sin(x) * 2   # 负半轴: sin 曲线
-    else:
-        y = x ** 2               # 正半轴: 抛物线
-    # 再加一层循环: 如果值太小就放大
+    y = torch.where(x < 0, torch.sin(x) * 2, x ** 2)
     while y.abs().max() < 1:
         y = y * 3
     return y
@@ -116,15 +112,12 @@ x = torch.linspace(-3, 3, 7, requires_grad=True)
 print(f"输入 x = {x}")
 y = piecewise(x)
 print(f"输出 y = {y}")
-print(f"实际执行: x 混合了正负→同时走 if 和 else 两条分支")
-print(f"         while 条件检查 y.abs().max() < 1 决定循环次数")
+mask = x < 0
+print(f"负半轴 {mask.sum().item()} 个元素走 sin*2, 正半轴 {(~mask).sum().item()} 个走 x²")
+print(f"while 条件检查 y.abs().max() < 1 决定循环次数")
 
 y.sum().backward()
-# 手动验证梯度:
-# x<0 的分支: y=2sin(x) → dy/dx=2cos(x)
-# x>=0 的分支: y=x² → dy/dx=2x
 expected = torch.where(x < 0, 2*torch.cos(x), 2*x)
-# while 循环每乘一次3，梯度也乘3
 loop_count = 0
 temp = piecewise(x).detach()
 while temp.abs().max() < 1:
@@ -137,5 +130,5 @@ print(f"手工推导        = {expected}")
 print(f"循环次数 = {loop_count}")
 print(f"一致: {torch.allclose(x.grad, expected)}")
 
-print("\n分析: PyTorch 动态记录了每个元素实际走的路,")
-print("if/else + while 的每一步都正确被求导链捕获")
+print("\n分析: torch.where 对每个元素独立选分支, while 循环每步都被记录")
+print("if/else (Python层) → 全或无;  torch.where (PyTorch层) → 逐元素")
