@@ -8,9 +8,13 @@ torch.manual_seed(42)
 
 # 生成数据
 N = 100
-x = torch.linspace(-3, 3, N).reshape(-1, 1)
+x = torch.linspace(-3, 3, N).reshape(-1, 1)  # -1 改成N可以吗 
+# reshape(-1, 1) 将 x 转为 [N, 1] 的列向量，方便后续计算,-1 表示自动推断维度大小 1表示每行一个特征
+# 自动推断是因为我们已经指定了每行一个特征，所以 PyTorch 会根据总元素数量和每行的元素数量来推断行数，即 N 行，也就是我们前面定义的 N=100
 true_w, true_b = 3.0, 2.0
+# reshape(-1) 将 y 转为一维向量，方便后续计算,其实就是把 y 从 [N, 1] 变成 [N]
 y = true_w * x.reshape(-1) + true_b + torch.randn(N) * 1.5
+
 
 print(f"真实参数: w=3.0, b=2.0\n")
 
@@ -36,6 +40,7 @@ print(f"(b) 梯度下降:    w={w.item():.4f}, b={b.item():.4f}")
 
 # (c) nn.Linear + SGD
 model = nn.Linear(1, 1)
+# 这里我们使用 nn.Linear 来定义一个线性模型，输入特征数为 1，输出特征数也为 1。nn.Linear 会自动初始化权重和偏置，我们将通过训练来优化它们。
 optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 for _ in range(500):
     y_pred = model(x).squeeze()
